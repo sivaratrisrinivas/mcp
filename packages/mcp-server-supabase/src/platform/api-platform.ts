@@ -258,7 +258,9 @@ export function createSupabaseApiPlatform(
       return response.data;
     },
     async applyMigration(projectId: string, options: ApplyMigrationOptions) {
-      const { name, query } = applyMigrationOptionsSchema.parse(options);
+      const { name, query, version } = applyMigrationOptionsSchema.parse(
+        options
+      );
 
       const response = await managementApiClient.POST(
         '/v1/projects/{ref}/database/migrations',
@@ -271,6 +273,7 @@ export function createSupabaseApiPlatform(
           body: {
             name,
             query,
+            ...(version ? { version } : {}),
           },
         }
       );

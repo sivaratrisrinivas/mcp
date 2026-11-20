@@ -531,7 +531,7 @@ export const mockManagementApi = [
   /**
    * Create a new migration for a project
    */
-  http.post<{ projectId: string }, { name: string; query: string }>(
+  http.post<{ projectId: string }, { name: string; query: string; version?: string }>(
     `${API_URL}/v1/projects/:projectId/database/migrations`,
     async ({ params, request }) => {
       const project = mockProjects.get(params.projectId);
@@ -542,7 +542,7 @@ export const mockManagementApi = [
         );
       }
       const { db, migrations } = project;
-      const { name, query } = await request.json();
+      const { name, query, version } = await request.json();
       const [results] = await db.exec(query);
 
       if (!results) {
@@ -553,7 +553,7 @@ export const mockManagementApi = [
       }
 
       migrations.push({
-        version: format(new Date(), 'yyyyMMddHHmmss'),
+        version: version ?? format(new Date(), 'yyyyMMddHHmmss'),
         name,
         query,
       });

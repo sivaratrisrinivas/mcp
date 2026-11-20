@@ -4347,6 +4347,12 @@ export interface components {
             query: string;
             name?: string;
             rollback?: string;
+            /**
+             * Optional migration version (YYYYMMDDHHMMSS). The published
+             * Management API may not accept this field yet; the MCP server
+             * forwards it when provided.
+             */
+            version?: string;
         };
         /** @example {
          *       "query": "create table public.widgets(id bigint primary key);",

@@ -191,6 +191,68 @@ describe('tools', () => {
     );
   });
 
+  test('apply_migration uses an optional version for migration history', async () => {
+    const { callTool } = await setup();
+
+    const { project } = await createProjectFixture({
+      organization: { name: 'My Org', allowed_release_channels: ['ga'] },
+      project: { name: 'Project 1', region: 'us-east-1' },
+    });
+
+    const name = 'create_widgets_table';
+    const query = 'create table widgets (id serial primary key)';
+    const version = '20260320140000';
+
+    const result = await callTool({
+      name: 'apply_migration',
+      arguments: {
+        project_id: project.id,
+        name,
+        query,
+        version,
+      },
+    });
+
+    expect(result).toEqual({ success: true });
+
+    const listMigrationsResult = await callTool({
+      name: 'list_migrations',
+      arguments: {
+        project_id: project.id,
+      },
+    });
+
+    expect(listMigrationsResult.migrations).toEqual([
+      {
+        name,
+        version,
+      },
+    ]);
+  });
+
+  test('apply_migration rejects a malformed version', async () => {
+    const { callTool } = await setup();
+
+    const { project } = await createProjectFixture({
+      organization: { name: 'My Org', allowed_release_channels: ['ga'] },
+      project: { name: 'Project 1', region: 'us-east-1' },
+    });
+
+    const resultPromise = callTool({
+      name: 'apply_migration',
+      arguments: {
+        project_id: project.id,
+        name: 'bad_version',
+        query: 'select 1;',
+        version: 'not-a-timestamp',
+      },
+    });
+
+    await expect(resultPromise).rejects.toThrow(
+      'version must be a 14-digit timestamp (YYYYMMDDHHMMSS)'
+    );
+  });
+
   test('list_tables returns compact summary by default', async () => {
     const { callTool } = await setup();
 

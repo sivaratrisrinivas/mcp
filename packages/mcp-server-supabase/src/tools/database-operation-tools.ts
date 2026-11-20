@@ -191,6 +191,13 @@ const applyMigrationInputSchema = z.object({
   project_id: z.string(),
   name: z.string().describe('The name of the migration in snake_case'),
   query: z.string().describe('The SQL query to apply'),
+  version: z
+    .string()
+    .regex(/^\d{14}$/, 'version must be a 14-digit timestamp (YYYYMMDDHHMMSS)')
+    .optional()
+    .describe(
+      'Optional local migration version (YYYYMMDDHHMMSS). Forwarded to the Management API as `version` so remote history can match the local file. Omit it to use a server-generated timestamp. If the API does not yet accept this field, omit version and the call will use the server-generated timestamp behavior.'
+    ),
 });
 
 const applyMigrationOutputSchema = z.object({
@@ -466,7 +473,7 @@ export function getDatabaseTools({
       ...databaseToolDefs.apply_migration,
       inject: { project_id },
       execute: async (
-        { project_id, name, query },
+        { project_id, name, query, version },
         ctx: ServerContext,
         observation?: ToolObservation<ObservationFact>
       ) => {
@@ -549,7 +556,7 @@ export function getDatabaseTools({
         }
 
         await observeOperation('destructive_sql', record, () =>
-          database.applyMigration(project_id, { name, query })
+          database.applyMigration(project_id, { name, query, version })
         );
         return { success: true };
       },

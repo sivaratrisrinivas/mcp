@@ -135,6 +135,10 @@ export const executeSqlOptionsSchema = z.object({
 export const applyMigrationOptionsSchema = z.object({
   name: z.string().min(1),
   query: z.string().min(1),
+  version: z
+    .string()
+    .regex(/^\d{14}$/, 'version must be a 14-digit timestamp (YYYYMMDDHHMMSS)')
+    .optional(),
 });
 
 export const migrationSchema = z.object({
