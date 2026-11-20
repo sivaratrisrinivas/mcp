@@ -1054,6 +1054,61 @@ describe('tools', () => {
     }
   });
 
+  test('list_tables advisory is scoped when the listing is not complete', async () => {
+    const { callTool } = await setup();
+
+    const { project } = await createProjectFixture({
+      organization: { name: 'My Org', allowed_release_channels: ['ga'] },
+      project: { name: 'Project 1', region: 'us-east-1' },
+    });
+
+    await project.db.exec(`
+      create table public.users (id serial primary key);
+      create schema billing;
+      create table billing.invoices (id serial primary key);
+    `);
+
+    const publicOnly = await callTool({
+      name: 'list_tables',
+      arguments: {
+        project_id: project.id,
+        schemas: ['public'],
+      },
+    });
+
+    expect(publicOnly.tables.map((t: { name: string }) => t.name)).toEqual([
+      'public.users',
+    ]);
+    expect(publicOnly.advisory).toEqual(
+      expect.objectContaining({ id: 'rls_disabled' })
+    );
+    expect(publicOnly.advisory.message).toContain('public.users');
+    expect(publicOnly.advisory.message).not.toContain('billing.invoices');
+    expect(publicOnly.advisory.message).toContain(
+      'This count is limited to the schema(s) in this listing (public).'
+    );
+
+    const allSchemas = await callTool({
+      name: 'list_tables',
+      arguments: {
+        project_id: project.id,
+        schemas: [],
+      },
+    });
+
+    const allNames: string[] = allSchemas.tables.map(
+      (t: { name: string }) => t.name
+    );
+    expect(allNames).toEqual(
+      expect.arrayContaining(['public.users', 'billing.invoices'])
+    );
+    expect(allSchemas.advisory.message).toContain('public.users');
+    expect(allSchemas.advisory.message).toContain('billing.invoices');
+    expect(allSchemas.advisory.message).not.toContain(
+      'limited to the schema(s)'
+    );
+  });
+
   test('list_tables is not vulnerable to SQL injection via schemas parameter', async () => {
     const { callTool } = await setup();
 

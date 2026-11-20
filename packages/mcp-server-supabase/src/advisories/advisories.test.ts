@@ -110,6 +110,36 @@ describe('buildRlsDisabledAdvisory', () => {
       'ALTER TABLE "my.app"."hobbies" ENABLE ROW LEVEL SECURITY;'
     );
   });
+
+  test('adds a scope caveat when the listing is limited to some schemas', () => {
+    const tables = [
+      { schema: 'public', name: 'users', rls_enabled: false },
+      { schema: 'billing', name: 'invoices', rls_enabled: false },
+    ];
+
+    const advisory = buildRlsDisabledAdvisory(tables, { schemas: ['public'] });
+
+    expect(advisory).not.toBeNull();
+    expect(advisory!.message).toContain('2 table(s)');
+    expect(advisory!.message).toContain(
+      'This count is limited to the schema(s) in this listing (public).'
+    );
+    expect(advisory!.message).toContain('schemas: []');
+  });
+
+  test('does not add a scope caveat for a complete non-system listing', () => {
+    const tables = [
+      { schema: 'public', name: 'users', rls_enabled: false },
+      { schema: 'billing', name: 'invoices', rls_enabled: false },
+    ];
+
+    const advisory = buildRlsDisabledAdvisory(tables, { schemas: [] });
+
+    expect(advisory).not.toBeNull();
+    expect(advisory!.message).toContain('public.users');
+    expect(advisory!.message).toContain('billing.invoices');
+    expect(advisory!.message).not.toContain('limited to the schema(s)');
+  });
 });
 
 describe('selectAdvisory', () => {
